@@ -10,12 +10,14 @@ _KEY_API = 'api'
 _KEY_BODY = 'body'
 _KEY_MSG = 'msg'
 
-_ERROR_MSG_MALFORMED_DATA = 'malformed data'
+_ERROR_MSG_UNRECOGNIZED_FLAG = 'unrecognized protocol flag'
 _ERROR_MSG_INCOMPATIBLE_VERSION = 'incompatible version'
+_ERROR_MSG_MISSING_STATUS_CODE = 'missing status code'
+_ERROR_MSG_UNEXPECTED_EOF = 'unexpected eof'
 _ERROR_MSG_INVALID_STATUS_CODE = 'invalid status code'
 
 
-def _read_bytes(s: socket.socket, count: int) -> bytearray:
+def _read_bytes(s: socket.socket, count: int) -> bytes:
     rst = b''
     while True:
         tmp = s.recv(count - len(rst))
@@ -31,7 +33,7 @@ def _read_socket(s: socket.socket) -> (int, dict):
     # 1. FLAG 'pb'
     flag = _read_bytes(s, 2)
     if flag != b'pb':
-        raise Exception(_ERROR_MSG_MALFORMED_DATA)
+        raise Exception(_ERROR_MSG_UNRECOGNIZED_FLAG)
 
     # 2. VERSION
     ver = _read_bytes(s, 2)
@@ -41,18 +43,18 @@ def _read_socket(s: socket.socket) -> (int, dict):
     # 3. STATUS CODE
     status_code = _read_bytes(s, 1)
     if len(status_code) != 1:
-        raise Exception(_ERROR_MSG_MALFORMED_DATA)
+        raise Exception(_ERROR_MSG_MISSING_STATUS_CODE)
     code = status_code[0]
 
     # 4. RESERVED (2 bytes)
     reserved = _read_bytes(s, 2)
     if len(reserved) != 2:
-        raise Exception(_ERROR_MSG_MALFORMED_DATA)
+        raise Exception(_ERROR_MSG_UNEXPECTED_EOF)
 
     # 5. LENGTH (4-byte, little endian)
     len_bytes = _read_bytes(s, 4)
     if len(len_bytes) != 4:
-        raise Exception(_ERROR_MSG_MALFORMED_DATA)
+        raise Exception(_ERROR_MSG_UNEXPECTED_EOF)
     json_len = len_bytes[0]
     json_len += len_bytes[1] << 8
     json_len += len_bytes[2] << 16
@@ -61,7 +63,7 @@ def _read_socket(s: socket.socket) -> (int, dict):
     # 6. JSON OBJECT
     text_bytes = _read_bytes(s, json_len)
     if len(text_bytes) != json_len:
-        raise Exception(_ERROR_MSG_MALFORMED_DATA)
+        raise Exception(_ERROR_MSG_UNEXPECTED_EOF + ' (need ' + str(json_len) + 'but ' + str(len(text_bytes)) + ')')
     obj = json.loads(str(text_bytes, encoding='utf-8'), encoding='utf-8')
 
     return code, obj
@@ -108,9 +110,9 @@ def _read_response(s: socket.socket) -> (int, dict):
             return status_code, obj[_KEY_BODY]
     elif status_code == _STATUS_CODE_BAD_RESPONSE:
         if _KEY_MSG not in obj:
-            return status_code, ''
+            return status_code, 'unknown server error'
         else:
-            return status_code, str(obj[_KEY_MSG])
+            return status_code, 'server error: ' + str(obj[_KEY_MSG])
     else:
         raise Exception(_ERROR_MSG_INVALID_STATUS_CODE)
 
