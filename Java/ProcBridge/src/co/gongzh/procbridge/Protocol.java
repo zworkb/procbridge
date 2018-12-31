@@ -83,7 +83,7 @@ final class Protocol {
 
             // 6. JSON OBJECT
             stream.write(data);
-
+            System.out.println("wrote data:"+data);
             stream.flush();
         } catch (IOException e) {
             throw new ProcBridgeException(e);

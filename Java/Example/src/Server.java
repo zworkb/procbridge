@@ -17,7 +17,9 @@ public class Server {
 
         int port = 8877;
 
-        ProcBridgeServer server = new ProcBridgeServer(port, new Object() {
+        ProcBridgeServer server = new ProcBridgeServer(port);
+
+        server.setDelegate(new Object() {
 
             @APIHandler
             JsonObject echo(JsonObject arg) {

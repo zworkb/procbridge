@@ -72,6 +72,7 @@ public final class ProcBridgeServer {
 	}
 
 	public synchronized void start() throws IOException {
+		System.out.println("start()...");
 		start(false);
 	}
 
@@ -192,7 +193,7 @@ public final class ProcBridgeServer {
 
 		@Override
 		public void run() {
-
+			System.out.println("starting... server...");
 			clientIDThreadLocal.set(clientID);
 			Thread.currentThread().setName("pb_MessageReceiverThread_" + server.getPort() + "_" + clientID);
 
@@ -344,7 +345,5 @@ public final class ProcBridgeServer {
 				}
 			}
 		}
-
 	}
-
 }

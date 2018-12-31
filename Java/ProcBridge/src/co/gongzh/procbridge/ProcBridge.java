@@ -82,6 +82,7 @@ public final class ProcBridge {
 
 	public void sendMessage(@NotNull String api, @Nullable String jsonText) throws ProcBridgeException {
 		try {
+		    System.out.println("sending text:"+jsonText);
 			if (jsonText == null) {
 				jsonText = "{}";
 			}
