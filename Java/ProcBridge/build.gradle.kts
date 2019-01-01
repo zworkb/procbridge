@@ -11,13 +11,13 @@ import org.gradle.api.tasks.bundling.Jar
 
 group = "co.gongzh.procbridge"
 // group = "co.gongzh.procbridge"
-version = "2.0.0-gradle"
+version = "2.0.2-gradle"
 description = "procbridge"
 // sourceCompatibility = "1.8"
 
 val sourcesJar by tasks.registering(Jar::class) {
     classifier = "sources"
-    sourceSets.main.get().java.srcDir("src/co/gongzh")
+//    sourceSets.main.get().java.srcDir("src")
     from(sourceSets.main.get().allSource)
 }
 

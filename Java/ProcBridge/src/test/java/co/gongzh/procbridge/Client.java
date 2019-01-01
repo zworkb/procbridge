@@ -1,3 +1,5 @@
+package co.gongzh.procbridge;
+
 import co.gongzh.procbridge.MessageHandler;
 import co.gongzh.procbridge.ProcBridge;
 import co.gongzh.procbridge.ProcBridgeException;
@@ -5,11 +7,18 @@ import co.gongzh.procbridge.ProcBridgeException;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.gson.JsonObject;
+import org.junit.Test;
 
 /**
  * @author Gong Zhang
  */
+
+
 public class Client {
+	@Test
+	public void schas(){
+		System.out.println("Testing");
+	}
 
 	private static MessageHandler messageHandlerImpl = new MessageHandler() {
 		

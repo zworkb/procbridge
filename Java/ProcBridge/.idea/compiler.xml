@@ -10,6 +10,8 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="co.gongzh.procbridge.procbridge.main" target="1.8" />
+      <module name="co.gongzh.procbridge.procbridge.test" target="1.8" />
       <module name="ProcBridge" target="1.8" />
     </bytecodeTargetLevel>
   </component>

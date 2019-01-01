@@ -3,6 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/ProcBridge.iml" filepath="$PROJECT_DIR$/ProcBridge.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/co.gongzh.procbridge.procbridge.iml" filepath="$PROJECT_DIR$/.idea/modules/co.gongzh.procbridge.procbridge.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/co.gongzh.procbridge.procbridge.main.iml" filepath="$PROJECT_DIR$/.idea/modules/co.gongzh.procbridge.procbridge.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/co.gongzh.procbridge.procbridge.test.iml" filepath="$PROJECT_DIR$/.idea/modules/co.gongzh.procbridge.procbridge.test.iml" />
     </modules>
   </component>
 </project>
