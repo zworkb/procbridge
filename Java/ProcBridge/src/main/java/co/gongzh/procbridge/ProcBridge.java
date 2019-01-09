@@ -139,6 +139,10 @@ public final class ProcBridge {
 
 					assert out_json[0] != null;
 					//sends the message to the handler.
+
+                    // TODO: if its a response message to a request (not sendMessage)
+                    // call a specific responseHandler that gives control to the future or so
+
 					messageHandler.onMessage(out_json[0]);
 					
 				} catch (ProcBridgeException e) {
@@ -186,5 +190,45 @@ public final class ProcBridge {
 			e.printStackTrace();
 		}
 	}
+
+	// from earlier version, does not work here, must work with the messageHandler
+    @NotNull
+    public JsonObject request(@NotNull String api, @Nullable JsonObject body) throws ProcBridgeException {
+        final RequestEncoder request = new RequestEncoder(api, body);
+
+        final JsonObject[] out_json = { null };
+        final String[] out_err_msg = { null };
+
+        try (final Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), timeout);
+            socket.setSoTimeout(timeout);
+            try (OutputStream os = socket.getOutputStream();
+                 InputStream is = socket.getInputStream()) {
+
+                Protocol.write(os, request);
+                Decoder decoder = Protocol.read(is);
+                out_json[0] = decoder.getResponseBody();
+                if (out_json[0] == null) {
+                    // must be error
+                    out_err_msg[0] = decoder.getErrorMessage();
+                }
+
+            } catch (IOException | ProcBridgeException e) {
+                throw new RuntimeException(e);
+            }
+        } catch (IOException e) {
+            throw new ProcBridgeException(e);
+        }
+
+        if (out_json[0] == null) {
+            if (out_err_msg[0] == null) {
+                out_err_msg[0] = "server error";
+            }
+            throw new ProcBridgeException(out_err_msg[0]);
+        }
+
+        assert out_json[0] != null;
+        return out_json[0];
+    }
 
 }

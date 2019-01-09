@@ -25,14 +25,12 @@ public class Client {
 		@Override
 		public void onMessage(@NotNull JsonObject message) {
 			System.out.println("onMessage " + message);
-			
 		}
 		
 		@Override
 		public void onError(ProcBridgeException e) {
 			System.out.println("onError " + e);
 			e.printStackTrace();
-			
 		}
 	};
 	
@@ -45,23 +43,18 @@ public class Client {
         ProcBridge pb = new ProcBridge(host, port, timeout, messageHandlerImpl);
 
         try {
-        	
         	pb.getClientID();
-        	
         	pb.sendMessage("echo", "{echo:echoooo}");
-
-            pb.sendMessage("add", "{elements: [1, 2, 3, 4, 5]}");
+        	pb.sendMessage("add", "{elements: [1, 2, 3, 4, 5]}");
 
             try {
             	pb.sendMessage("retNull", "{}");
-
             } catch (RuntimeException e) {
             	e.printStackTrace();
             }
             
             pb.sendMessage("retNullVal", "{}");
 
-            
         } catch (ProcBridgeException e) {
             e.printStackTrace();
         }

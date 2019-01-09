@@ -29,7 +29,8 @@ final class ReflectiveDelegate implements ProcBridgeServer.Delegate {
         this.apiMap = new HashMap<>();
         for (Method m : target.getClass().getDeclaredMethods()) {
             if (m.getAnnotation(APIHandler.class) != null) {
-                String api = m.getName();
+                String api = m.getName().split("\\$")[0];
+
                 if (apiMap.containsKey(api)) {
                     throw new RuntimeException("duplicate api: " + api);
                 }
