@@ -244,17 +244,14 @@ public final class ProcBridgeServer {
 						delegate.onError(ex);
 					}
 
-				} catch (ProcBridgeException e) {
-					if (isConnectionReset(e)) {
+				} catch (SocketException e) {
 						LOGGER.warn("Connection has been reset by the client without sending a close message.");
 						closeSocket();
 						return;
-					}
+				} catch (ProcBridgeException e) {
 					throw new RuntimeException(e);
 				}
-
 			}
-
 		}
 
 		private void closeSocket() {

@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
+import java.net.SocketException;
 
 /**
  * @author Gong Zhang
@@ -90,13 +91,13 @@ final class Protocol {
         }
     }
 
-    static Decoder read(InputStream stream) throws ProcBridgeException {
+    static Decoder read(InputStream stream) throws ProcBridgeException, SocketException {
         try {
             int b;
 
             // 1. FLAG
             b = stream.read();
-            if (b == -1) throw ProcBridgeException.unexpectedEndOfStream();
+            if (b == -1) throw ProcBridgeException.unexpectedEndOfStream("reading flag");
             if (b != FLAG[0]) throw ProcBridgeException.malformedInputData();
             b = stream.read();
             if (b == -1) throw ProcBridgeException.unexpectedEndOfStream();
@@ -167,7 +168,11 @@ final class Protocol {
             decoder.decode(obj);
             return decoder;
 
-        } catch (IOException e) {
+        }
+        catch (SocketException e) {
+            throw ProcBridgeException.unexpectedEndOfStream("", e);
+        }
+        catch (IOException e) {
             throw new ProcBridgeException(e);
         } catch (JsonParseException e) {
             throw ProcBridgeException.malformedInputData();

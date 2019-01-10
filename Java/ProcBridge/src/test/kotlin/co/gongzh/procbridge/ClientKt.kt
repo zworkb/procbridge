@@ -120,5 +120,5 @@ fun main(args: Array<String>) {
         e.printStackTrace()
     }
 
-//    ClientKt.pb?.stop()
+    ClientKt.pb?.stop()
 }

@@ -6,7 +6,15 @@ package co.gongzh.procbridge;
 public class ProcBridgeException extends Exception {
 
     static ProcBridgeException unexpectedEndOfStream() {
-        return new ProcBridgeException("unexpected end of stream");
+        return new EmptyStreamException("unexpected end of stream");
+    }
+
+    static ProcBridgeException unexpectedEndOfStream(String msg) {
+        return new EmptyStreamException("unexpected end of stream:"+msg);
+    }
+
+    static ProcBridgeException unexpectedEndOfStream(String msg, Throwable e) {
+        return new EmptyStreamException("unexpected end of stream:"+msg, e);
     }
 
     static ProcBridgeException malformedInputData() {
@@ -40,5 +48,13 @@ public class ProcBridgeException extends Exception {
     ProcBridgeException(Throwable cause) {
         super(cause);
     }
+}
 
+class EmptyStreamException extends ProcBridgeException {
+    EmptyStreamException(String message) {
+        super(message);
+    }
+    EmptyStreamException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

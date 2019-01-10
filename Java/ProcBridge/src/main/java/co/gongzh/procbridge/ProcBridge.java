@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -145,7 +146,13 @@ public final class ProcBridge {
 
 					messageHandler.onMessage(out_json[0]);
 					
-				} catch (ProcBridgeException e) {
+				} catch (SocketException e) {
+					messageHandler.onError(new ProcBridgeException(e));
+					return;
+				} catch (EmptyStreamException e) {
+					System.out.println("Socket closed remotely closed");
+					return;
+				} catch(ProcBridgeException e) {
 					if (stopRequested && socket.isClosed()) {
 						//the current read operation generates a socket closed exception during a normal stop.
 						//it is detected here not to send an error to the caller.

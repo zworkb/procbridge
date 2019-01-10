@@ -49,10 +49,15 @@ fun main(args: Array<String>) {
 
     //Wait for responses.
     try {
-        Thread.sleep(20000)
+        Thread.sleep(2000)
     } catch (e: InterruptedException) {
         e.printStackTrace()
     }
 
+    println("stopping server...")
+    server.stop()
+    println("server stopped")
+    println("stopping bridge...")
     pb.stop()
+    println("bridge stopped")
 }
