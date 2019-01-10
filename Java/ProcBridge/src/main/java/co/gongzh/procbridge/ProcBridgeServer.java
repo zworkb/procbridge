@@ -204,10 +204,7 @@ public final class ProcBridgeServer {
 				throw new RuntimeException(e);
 			}
 
-			while (true) {
-				if (!server.started || socket.isClosed() || socket.isInputShutdown()) {
-					return;
-				}
+			while (server.started && !socket.isClosed() && !socket.isInputShutdown()) {
 
 				try {
 					// Read will be a blocking operation until next content in the is.

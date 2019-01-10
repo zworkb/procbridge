@@ -48,7 +48,7 @@ fun main(args: Array<String>) {
 
     //Wait for responses.
     try {
-        Thread.sleep(10000)
+        Thread.sleep(1000)
     } catch (e: InterruptedException) {
         e.printStackTrace()
     }

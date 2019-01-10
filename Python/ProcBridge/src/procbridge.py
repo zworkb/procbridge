@@ -14,6 +14,12 @@ _ERROR_MSG_MALFORMED_DATA = 'malformed data'
 _ERROR_MSG_INCOMPATIBLE_VERSION = 'incompatible version'
 _ERROR_MSG_INVALID_STATUS_CODE = 'invalid status code'
 
+
+FLAG = 'pb'
+VERSION = [1, 0]
+
+API_CLOSE = '__PB_CLOSE__'
+
 def bytes2long(buf):
     res = ord(buf[0]) +\
           (ord(buf[1]) << 8) +\
@@ -30,6 +36,7 @@ def long2bytes(x):
                   (x >> 24) & 255
               ]))
     return bytes
+
 
 def _read_bytes(s, count) :
     rst = b''
@@ -87,7 +94,7 @@ def _write_socket(s, status_code, json_obj):
     # 2. VERSION
     s.sendall(b'\x01\x00')
     # 3. STATUS CODE
-    s.sendall(bytes([status_code]))
+    s.sendall(chr(status_code))
     # 4. RESERVED 2 BYTES
     s.sendall(b'\x00\x00')
 
@@ -95,7 +102,11 @@ def _write_socket(s, status_code, json_obj):
     json_text = json.dumps(json_obj)
     json_bytes = json_text #bytes(json_text, encoding='utf-8')
     # len_bytes = len(json_bytes).to_bytes(4, byteorder='little')
-    len_bytes = long2bytes(len(json_bytes))
+    len_bytes = len(json_bytes)
+    print 'len_bytes:', len_bytes
+    bytes_len_bytes = long2bytes(len_bytes)
+    print 'bytes_len_bytes:', map(ord, bytes_len_bytes)
+    len_bytes = long2bytes(len_bytes)
     s.sendall(len_bytes)
 
     # 6. JSON
@@ -229,14 +240,20 @@ def _start_server_listener(server):
 
 def _start_connection(server, s):
     try:
-        api, body = _read_request(s)
-        try:
-            reply = server.delegate(api, body)
-            if reply is None:
-                reply = {}
-            _write_good_response(s, reply)
-        except Exception as ex:
-            _write_bad_response(s, str(ex))
+        while server.started:
+            api, body = _read_request(s)
+            print 'api:', api, body
+            if api == API_CLOSE:
+                print 'closing'
+                break
+            try:
+                reply = server.delegate(api, body)
+                if reply is None:
+                    reply = {}
+                _write_good_response(s, reply)
+            except Exception as ex:
+                _write_bad_response(s, str(ex))
+
     except: #TODO: fix that seriously
         raise
         pass
