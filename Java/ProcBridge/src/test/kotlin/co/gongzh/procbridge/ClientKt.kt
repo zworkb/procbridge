@@ -12,7 +12,7 @@ class ClientKt {
     @Test
     fun test_java_server() {
         println("!!!! Testing Kotlin Client, $pb")
-        pb.sendMessage("echo", "{echo:echoooo}")
+        pb.sendMessage("echo", "Hi Back")
     }
 
     @Test

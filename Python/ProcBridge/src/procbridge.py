@@ -14,8 +14,24 @@ _ERROR_MSG_MALFORMED_DATA = 'malformed data'
 _ERROR_MSG_INCOMPATIBLE_VERSION = 'incompatible version'
 _ERROR_MSG_INVALID_STATUS_CODE = 'invalid status code'
 
+def bytes2long(buf):
+    res = ord(buf[0]) +\
+          (ord(buf[1]) << 8) +\
+          (ord(buf[2]) << 16) +\
+          (ord(buf[3]) << 24)
+    return res
 
-def _read_bytes(s: socket.socket, count: int) -> bytearray:
+def long2bytes(x):
+    bytes=''.join(map(chr,
+              [
+                  x & 255,
+                  (x >> 8) & 255,
+                  (x >> 16) & 255,
+                  (x >> 24) & 255
+              ]))
+    return bytes
+
+def _read_bytes(s, count) :
     rst = b''
     while True:
         tmp = s.recv(count - len(rst))
@@ -27,7 +43,7 @@ def _read_bytes(s: socket.socket, count: int) -> bytearray:
     return rst
 
 
-def _read_socket(s: socket.socket) -> (int, dict):
+def _read_socket(s):
     # 1. FLAG 'pb'
     flag = _read_bytes(s, 2)
     if flag != b'pb':
@@ -42,7 +58,7 @@ def _read_socket(s: socket.socket) -> (int, dict):
     status_code = _read_bytes(s, 1)
     if len(status_code) != 1:
         raise Exception(_ERROR_MSG_MALFORMED_DATA)
-    code = status_code[0]
+    code = ord(status_code[0])
 
     # 4. RESERVED (2 bytes)
     reserved = _read_bytes(s, 2)
@@ -53,21 +69,19 @@ def _read_socket(s: socket.socket) -> (int, dict):
     len_bytes = _read_bytes(s, 4)
     if len(len_bytes) != 4:
         raise Exception(_ERROR_MSG_MALFORMED_DATA)
-    json_len = len_bytes[0]
-    json_len += len_bytes[1] << 8
-    json_len += len_bytes[2] << 16
-    json_len += len_bytes[3] << 24
+
+    json_len = bytes2long(len_bytes)
 
     # 6. JSON OBJECT
     text_bytes = _read_bytes(s, json_len)
     if len(text_bytes) != json_len:
         raise Exception(_ERROR_MSG_MALFORMED_DATA)
-    obj = json.loads(str(text_bytes, encoding='utf-8'), encoding='utf-8')
+    obj = json.loads(text_bytes, encoding='utf-8')
 
     return code, obj
 
 
-def _write_socket(s: socket.socket, status_code: int, json_obj: dict):
+def _write_socket(s, status_code, json_obj):
     # 1. FLAG
     s.sendall(b'pb')
     # 2. VERSION
@@ -79,15 +93,16 @@ def _write_socket(s: socket.socket, status_code: int, json_obj: dict):
 
     # 5. LENGTH (little endian)
     json_text = json.dumps(json_obj)
-    json_bytes = bytes(json_text, encoding='utf-8')
-    len_bytes = len(json_bytes).to_bytes(4, byteorder='little')
+    json_bytes = json_text #bytes(json_text, encoding='utf-8')
+    # len_bytes = len(json_bytes).to_bytes(4, byteorder='little')
+    len_bytes = long2bytes(len(json_bytes))
     s.sendall(len_bytes)
 
     # 6. JSON
     s.sendall(json_bytes)
 
 
-def _read_request(s: socket.socket) -> (str, dict):
+def _read_request(s) :
     status_code, obj = _read_socket(s)
     if status_code != _STATUS_CODE_REQUEST:
         raise Exception(_ERROR_MSG_INVALID_STATUS_CODE)
@@ -99,7 +114,7 @@ def _read_request(s: socket.socket) -> (str, dict):
         return str(obj[_KEY_API]), {}
 
 
-def _read_response(s: socket.socket) -> (int, dict):
+def _read_response(s) :
     status_code, obj = _read_socket(s)
     if status_code == _STATUS_CODE_GOOD_RESPONSE:
         if _KEY_BODY not in obj:
@@ -115,20 +130,20 @@ def _read_response(s: socket.socket) -> (int, dict):
         raise Exception(_ERROR_MSG_INVALID_STATUS_CODE)
 
 
-def _write_request(s: socket.socket, api: str, body: dict):
+def _write_request(s, api, body):
     _write_socket(s, _STATUS_CODE_REQUEST, {
         _KEY_API: api,
         _KEY_BODY: body
     })
 
 
-def _write_good_response(s: socket.socket, json_obj: dict):
+def _write_good_response(s, json_obj):
     _write_socket(s, _STATUS_CODE_GOOD_RESPONSE, {
         _KEY_BODY: json_obj
     })
 
 
-def _write_bad_response(s: socket.socket, message: str):
+def _write_bad_response(s, message):
     _write_socket(s, _STATUS_CODE_BAD_RESPONSE, {
         _KEY_MSG: message
     })
@@ -136,11 +151,11 @@ def _write_bad_response(s: socket.socket, message: str):
 
 class ProcBridge:
 
-    def __init__(self, host: str, port: int):
+    def __init__(self, host, port):
         self.host = host
         self.port = port
 
-    def request(self, api: str, body=None) -> dict:
+    def request(self, api, body=None) :
         if body is None:
             body = {}
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -158,7 +173,7 @@ class ProcBridge:
 
 class ProcBridgeServer:
 
-    def __init__(self, host: str, port: int, delegate):
+    def __init__(self, host, port, delegate):
         self.host = host
         self.port = port
         self.started = False
@@ -176,7 +191,7 @@ class ProcBridgeServer:
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.socket.bind((self.host, self.port))
             self.socket.listen(0)
-            t = threading.Thread(target=_start_server_listener, args=(self,), daemon=True)
+            t = threading.Thread(target=_start_server_listener, args=(self,))
             t.start()
             self.started = True
         finally:
@@ -194,7 +209,7 @@ class ProcBridgeServer:
             self.lock.release()
 
 
-def _start_server_listener(server: ProcBridgeServer):
+def _start_server_listener(server):
     try:
         while True:
             server.lock.acquire()
@@ -204,14 +219,15 @@ def _start_server_listener(server: ProcBridgeServer):
 
             # assert started == true:
             conn, _ = server.socket.accept()
-            t = threading.Thread(target=_start_connection, args=(server, conn,), daemon=True)
+            t = threading.Thread(target=_start_connection, args=(server, conn,))
             t.start()
-    except ConnectionAbortedError:
+    # except ConnectionAbortedError:
+    except IOError:
         # socket stopped
         pass
 
 
-def _start_connection(server: ProcBridgeServer, s: socket.socket):
+def _start_connection(server, s):
     try:
         api, body = _read_request(s)
         try:
@@ -221,7 +237,8 @@ def _start_connection(server: ProcBridgeServer, s: socket.socket):
             _write_good_response(s, reply)
         except Exception as ex:
             _write_bad_response(s, str(ex))
-    except:
+    except: #TODO: fix that seriously
+        raise
         pass
     finally:
         s.close()

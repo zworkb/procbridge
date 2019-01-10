@@ -1,8 +1,10 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(
   name='procbridge',
-  packages=['procbridge'],
+  packages=find_packages('src'),
+  package_dir={'': 'src'},
+  # packages=['procbridge'],
   version='1.0.2',
   description='A lightweight socket-based IPC (Inter-Process Communication) protocol.',
   author='Gong Zhang',

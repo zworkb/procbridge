@@ -1,20 +1,19 @@
 package co.gongzh.procbridge
 
+import com.google.gson.JsonObject
+
 import co.gongzh.procbridge.MessageHandler
 import co.gongzh.procbridge.ProcBridge
 import co.gongzh.procbridge.ProcBridgeException
-
-import com.google.gson.JsonObject
 
 
 fun main(args: Array<String>) {
 
     val host = "127.0.0.1"
-    val port = 8877
+    val port = 8077
     val timeout = 10000 // 10 seconds
 
-    val server = makeServer(port = port)
-
+    println("INFO: make sure that the server is started on Port $port")
     val messageHandlerImpl = object : MessageHandler {
         override
         fun onMessage(message: JsonObject) {
@@ -28,7 +27,7 @@ fun main(args: Array<String>) {
         }
     }
 
-    val pb = ProcBridge(host, port, timeout, messageHandlerImpl).also { it.getClientID() }
+    val pb = ProcBridge(host, port, timeout, messageHandlerImpl)//.also { it.getClientID() }
 
     try {
 //        ClientKt.pb?.getClientID()
@@ -49,7 +48,7 @@ fun main(args: Array<String>) {
 
     //Wait for responses.
     try {
-        Thread.sleep(20000)
+        Thread.sleep(2000)
     } catch (e: InterruptedException) {
         e.printStackTrace()
     }

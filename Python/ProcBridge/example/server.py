@@ -1,7 +1,7 @@
-import procbridge
+
 # from procbridge import procbridge
 import sys
-
+import procbridge
 
 if __name__ == '__main__':
 
@@ -9,7 +9,8 @@ if __name__ == '__main__':
     port = 8077
 
     # define request handler
-    def request_handler(api: str, arg: dict) -> dict:
+    def request_handler(api, arg):
+        print 'request_handler:', api, arg
 
         if api == 'echo':
             return arg
