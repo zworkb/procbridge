@@ -53,6 +53,10 @@ final class Protocol {
     
     static final String CLOSE_MESSAGE_API = "__PB_CLOSE__";
 
+    static final String REQ_ID = "__REQID__";
+    static final String RESP_TO = "__RESP_TO__";
+
+
     static void write(OutputStream stream, Encoder encoder) throws ProcBridgeException {
         try {
             // 1. FLAG 'p', 'b'

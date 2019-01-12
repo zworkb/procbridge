@@ -6,6 +6,8 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Iterator;
+import java.util.stream.IntStream;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,6 +15,8 @@ import org.jetbrains.annotations.Nullable;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+
+import static co.gongzh.procbridge.Protocol.REQ_ID;
 
 /**
  * @author Gong Zhang
@@ -35,10 +39,13 @@ public final class ProcBridge {
 	private MessageHandler messageHandler;
 	private boolean stopRequested = false;
 
+	private Iterator<Integer> intSpender;
+
 	public ProcBridge(String host, int port, int timeout, MessageHandler messageHandler) {
 		this.host = host;
 		this.port = port;
 		this.timeout = timeout;
+		this.intSpender = IntStream.iterate(0, i -> i + 1).iterator();
 
 		this.messageHandler = messageHandler;
 
@@ -102,6 +109,8 @@ public final class ProcBridge {
 		}
 		
 		synchronized (osLock) {
+			int reqid = this.intSpender.next();
+			if (body != null) body.addProperty(REQ_ID, reqid);
 			final RequestEncoder request = new RequestEncoder(api, body);
 			//just send the message here.
 			Protocol.write(os, request);

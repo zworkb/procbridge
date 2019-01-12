@@ -34,6 +34,7 @@ fun main(args: Array<String>) {
         pb.sendMessage("echo", "{echo:echoooo}")
 //        pb.sendMessage("echo", "{[1,2,3]}")
         pb.sendMessage("add", "{elements: [1, 2, 3, 4, 5]}")
+//        pb.sendMessage("add", "{elements: [1, 2, 3, 4, 5, 6, 7]}")
 
 //        try {
 //            pb.sendMessage("retNull", "{}")
