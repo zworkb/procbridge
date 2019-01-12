@@ -19,6 +19,9 @@ FLAG = 'pb'
 VERSION = [1, 0]
 
 API_CLOSE = '__PB_CLOSE__'
+REQ_ID = '__REQID__'
+RESP_TO = '__RESP_TO__'
+
 
 def bytes2long(buf):
     res = ord(buf[0]) +\
@@ -248,13 +251,14 @@ def _start_connection(server, s):
                 break
             try:
                 reply = server.delegate(api, body)
+                reply[RESP_TO] = body[REQ_ID]
                 if reply is None:
                     reply = {}
                 _write_good_response(s, reply)
             except Exception as ex:
                 _write_bad_response(s, str(ex))
 
-    except: #TODO: fix that seriously
+    except Exception as e: #TODO: fix that seriously
         raise
         pass
     finally:
