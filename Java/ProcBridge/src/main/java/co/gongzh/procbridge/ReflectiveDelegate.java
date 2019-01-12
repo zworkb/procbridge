@@ -10,6 +10,9 @@ import org.jetbrains.annotations.NotNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import static co.gongzh.procbridge.Protocol.REQ_ID;
+import static co.gongzh.procbridge.Protocol.RESP_TO;
+
 /**
  * @author Gong Zhang
  */
@@ -69,14 +72,18 @@ final class ReflectiveDelegate implements ProcBridgeServer.Delegate {
         } catch (InvocationTargetException ex) {
             throw new RuntimeException(ex.getTargetException().toString());
         }
+
+        JsonObject jret;
         if (ret instanceof JsonObject) {
-            sendMessage((JsonObject) ret);
+            jret = (JsonObject) ret;
         } else if (ret instanceof String) {
             String jsonText = (String) ret;
-            sendMessage(parser.parse(jsonText).getAsJsonObject());
+            jret = parser.parse(jsonText).getAsJsonObject();
         } else {
         	throw new NullPointerException("Can not send a null value as a response. Please consider your delegate response for : " + api);
         }
+        jret.addProperty(RESP_TO, body.get(REQ_ID).getAsInt());
+        sendMessage(jret);
     }
     
     @Override
