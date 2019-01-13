@@ -184,8 +184,21 @@ class ProcBridge:
         finally:
             s.close()
 
+
 class Delegate(object):
     """"""
+    handlers = {}
+
+    def __call__(self, api, kw):
+        meth = self.handlers[api]
+        return meth(self, **kw)
+
+    def api(self, f):
+        def wrapper(self, *a, **kw):
+            return f(self, *a, **kw)
+
+        self.handlers[f.__name__] = f
+        return wrapper
 
 
 class ProcBridgeServer:
@@ -255,6 +268,12 @@ def _start_connection(server, s):
                 break
             try:
                 reply = server.delegate(api, body)
+                print 'REPLY:', reply
+
+                # if result is not a dict, convert it to a dict containing 'result'
+                if not isinstance(reply, dict):
+                    reply={'result': reply}
+
                 reply[RESP_TO] = body[REQ_ID]
                 if reply is None:
                     reply = {}

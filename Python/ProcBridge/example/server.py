@@ -5,39 +5,27 @@ import procbridge
 
 #XXX: delegate must be a class
 
-class Delegate (procbridge.Delegate):
-    def __call__(self, api, arg):
-        print 'request_handler:', api, arg
+delegate = procbridge.Delegate()
 
-        if api == 'echo':
-            return arg
 
-        elif api == 'add':
-            return {'result': sum(x for x in arg['elements'])}
+@delegate.api
+def echo(self, echo, **kw):
+    return echo
 
-        else:
-            raise Exception('unknown api')
+
+@delegate.api
+def add(self, elements, **kw):
+    # return {'result': sum(x for x in elements)}  #long version
+    return sum(elements)
+
 
 if __name__ == '__main__':
 
     host = '127.0.0.1'
     port = 8077
 
-    # define request handler
-    # def request_handler(api, arg):
-    #     print 'request_handler:', api, arg
-    #
-    #     if api == 'echo':
-    #         return arg
-    #
-    #     elif api == 'add':
-    #         return {'result': sum(x for x in arg['elements'])}
-    #
-    #     else:
-    #         raise Exception('unknown api')
-
     # start socket server
-    server = procbridge.ProcBridgeServer(host, port, Delegate())
+    server = procbridge.ProcBridgeServer(host, port, delegate)
     server.start()
     print('listening...')
 

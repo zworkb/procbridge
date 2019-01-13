@@ -78,7 +78,7 @@ fun main(args: Array<String>) {
 
     val host = "127.0.0.1"
     val port = 8877
-    val timeout = 10000 // 10 seconds
+    val timeout = 100000 // 10 seconds
 
 //    ClientKt.server = makeServer(port=port)
 
