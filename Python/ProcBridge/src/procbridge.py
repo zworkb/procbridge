@@ -184,6 +184,9 @@ class ProcBridge:
         finally:
             s.close()
 
+class Delegate(object):
+    """"""
+
 
 class ProcBridgeServer:
 
@@ -194,6 +197,7 @@ class ProcBridgeServer:
         self.lock = threading.Lock()
         self.socket = None
         self.delegate = delegate
+        self.delegate.socket = self.socket
 
     def start(self):
         self.lock.acquire()
