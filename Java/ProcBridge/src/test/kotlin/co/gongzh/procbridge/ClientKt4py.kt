@@ -29,13 +29,13 @@ fun main(args: Array<String>) {
 //        ClientKt.pb?.getClientID()
 //        pb.sendMessage("echo", "{echo:echoooo}")
 //        pb.sendMessage("add", "{elements: [1, 2, 3, 4, 5]}")
-        pb.sendMessage("add", "{elements: [1, 2, 3, 4, 5, 6, 7]}")
+//        pb.sendMessage("add", "{elements: [1, 2, 3, 4, 5, 6, 7]}")
 //        pb.sendMessage("gettime")
-        val res = pb.sendMessage("add", "{elements:[1,2,3]}").get()
-        println("res=$res")
-//        val res1 = pb.sendMessage("geterror").get()
-
-
+//        val res: JsonObject = pb.sendMessage("add", "{elements:[1,2,3]}").get()
+//        println("res=$res")
+        val res1 = pb.sendMessage("geterror")//.get()
+        res1.get()
+        println("res1.get:${res1.get()}")
 
     } catch (e: ProcBridgeException) {
         e.printStackTrace()

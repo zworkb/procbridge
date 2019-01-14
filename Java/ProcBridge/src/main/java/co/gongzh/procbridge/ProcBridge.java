@@ -150,6 +150,7 @@ public final class ProcBridge {
     void cancelFuture(int reqid, Throwable e){
         CompletableFuture<JsonObject> fut = futures.get(reqid);
         fut.completeExceptionally(e);
+        fut.cancel(true);
     }
 
 	private void startHandlingMessages() {
@@ -176,10 +177,8 @@ public final class ProcBridge {
 
                         int reqid = -1;
                         messageHandler.onMessage(out_json);
-                        if (out_json.has(RESP_TO)) {
-                            reqid = out_json.get(RESP_TO).getAsInt();
-                            completeFuture(reqid, out_json);
-                        }
+                        reqid = decoder.getRespTo();//out_json.get(RESP_TO).getAsInt();
+                        completeFuture(reqid, out_json);
     					messageHandler.onMessage(out_json);
                     } else if (decoder instanceof BadResponseDecoder) {
                         out_err_msg = decoder.getErrorMessage();

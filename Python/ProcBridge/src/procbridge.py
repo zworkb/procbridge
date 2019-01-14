@@ -163,9 +163,10 @@ def _write_request(s, api, body):
     })
 
 
-def _write_good_response(s, json_obj):
+def _write_good_response(s, json_obj, resp_to):
     _write_socket(s, _STATUS_CODE_GOOD_RESPONSE, {
-        _KEY_BODY: json_obj
+        _KEY_BODY: json_obj,
+        RESP_TO:resp_to
     })
 
 
@@ -253,7 +254,7 @@ class ProcBridgeServer:
         """
         print 'socket:', self.socket.makefile
         # _write_socket(conn, _STATUS_CODE_GOOD_RESPONSE, data)
-        _write_good_response(conn, data)
+        _write_good_response(conn, data, -1)
 
 def _start_server_listener(server):
     try:
@@ -311,15 +312,18 @@ def _start_connection(server, s):
                 if not isinstance(reply, dict):
                     reply = {'result': reply}
 
-                reply[RESP_TO] = body[REQ_ID]
                 if reply is None:
                     reply = {}
-                _write_good_response(s, reply)
+                resp_to = body[REQ_ID]
+                print 'resp_to:', resp_to
+                _write_good_response(s, reply, resp_to=resp_to)
             except ProcServerPythonException as ex:
                 # reply = dict()
                 # reply[RESP_TO] = body[REQ_ID]
                 # reply['msg'] = str(ex)
-                _write_error_response(s, ex.message, resp_to=body[REQ_ID])
+                resp_to=body[REQ_ID]
+                print 'resp_to:', resp_to
+                _write_error_response(s, ex.message, resp_to=resp_to)
             except Exception as ex:
                 _write_bad_response(s, str(ex))
 

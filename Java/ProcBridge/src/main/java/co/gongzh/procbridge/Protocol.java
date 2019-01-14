@@ -350,6 +350,7 @@ final class GoodResponseDecoder extends Decoder {
     @NotNull
     private
     JsonObject body = new JsonObject();
+    JsonElement value = null;
 
     @Override
     void decode(JsonObject object) throws ProcBridgeException {
@@ -357,10 +358,16 @@ final class GoodResponseDecoder extends Decoder {
     	if (element == null) {
     		throw new ProcBridgeException("null response received from server.");
     	}
-        JsonObject body = element.getAsJsonObject();
-        if (body != null) {
+        JsonObject body=null;
+    	value = element;
+
+    	if (element.isJsonObject())
+            body = element.getAsJsonObject();
+
+    	if (body != null) {
             this.body = body;
         }
+        this.respTo=object.get(RESP_TO).getAsInt();
     }
 
     JsonObject getResponseBody() {
