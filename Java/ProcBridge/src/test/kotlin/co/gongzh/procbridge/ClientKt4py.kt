@@ -30,6 +30,7 @@ fun main(args: Array<String>) {
         pb.sendMessage("echo", "{echo:echoooo}")
         pb.sendMessage("add", "{elements: [1, 2, 3, 4, 5]}")
         pb.sendMessage("add", "{elements: [1, 2, 3, 4, 5, 6, 7]}")
+        pb.sendMessage("gettime")
 
 
     } catch (e: ProcBridgeException) {
@@ -38,7 +39,7 @@ fun main(args: Array<String>) {
 
     //Wait for responses.
     try {
-        Thread.sleep(100000)
+        Thread.sleep(1000)
     } catch (e: InterruptedException) {
         e.printStackTrace()
     }
