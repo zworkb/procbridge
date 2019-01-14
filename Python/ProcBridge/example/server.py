@@ -28,6 +28,11 @@ def add(self, elements, conn, **kw):
     return sum(elements)
 
 
+@delegate.api
+def geterror(self, **kw):
+    raise Exception("shit happened")
+
+
 if __name__ == '__main__':
 
     host = '127.0.0.1'

@@ -4,7 +4,8 @@ import threading
 
 _STATUS_CODE_REQUEST = 0
 _STATUS_CODE_GOOD_RESPONSE = 1
-_STATUS_CODE_BAD_RESPONSE = 2
+_STATUS_CODE_BAD_RESPONSE = 2    # protocol errors
+_STATUS_CODE_ERROR_RESPONSE = 3  # app level errors
 
 _KEY_API = 'api'
 _KEY_BODY = 'body'
@@ -23,12 +24,23 @@ REQ_ID = '__REQID__'
 RESP_TO = '__RESP_TO__'
 
 
+class ProcServerPythonException(Exception):
+    """Runtime exception"""
+    def __init__(self, ex):
+        self.exception = _STATUS_CODE_BAD_RESPONSE
+        self.message = ex.message
+
+    def __str__(self):
+        return "ProcBridge Server Exception [Python] %s:%s" % (self.exception.__class__, self.message)
+
+
 def bytes2long(buf):
     res = ord(buf[0]) +\
           (ord(buf[1]) << 8) +\
           (ord(buf[2]) << 16) +\
           (ord(buf[3]) << 24)
     return res
+
 
 def long2bytes(x):
     bytes=''.join(map(chr,
@@ -157,7 +169,16 @@ def _write_good_response(s, json_obj):
     })
 
 
+def _write_error_response(s, json_obj, resp_to=-1):
+    """for exceptions on application level"""
+    _write_socket(s, _STATUS_CODE_ERROR_RESPONSE, {
+        _KEY_MSG: json_obj,
+        RESP_TO: resp_to
+    })
+
+
 def _write_bad_response(s, message):
+    """for exceptions on protocol level"""
     _write_socket(s, _STATUS_CODE_BAD_RESPONSE, {
         _KEY_MSG: message
     })
@@ -183,22 +204,6 @@ class ProcBridge:
                 raise Exception(obj)
         finally:
             s.close()
-
-
-class Delegate(object):
-    """"""
-    handlers = {}
-
-    def __call__(self, api, kw, conn):
-        meth = self.handlers[api]
-        return meth(self, conn=conn, **kw)
-
-    def api(self, f):
-        def wrapper(self, conn, *a, **kw):
-            return f(self, conn=conn, *a, **kw)
-
-        self.handlers[f.__name__] = f
-        return wrapper
 
 
 class ProcBridgeServer:
@@ -268,6 +273,28 @@ def _start_server_listener(server):
         pass
 
 
+class Delegate(object):
+    """"""
+    handlers = {}
+
+    def __call__(self, api, kw, conn):
+        meth = self.handlers[api]
+        return meth(self, conn=conn, **kw)
+
+    def api(self, f):
+        def wrapper(self, conn, *a, **kw):
+            print "inside wrapper"
+            try:
+                print "wrapper calls f"
+                return f(self, conn=conn, *a, **kw)
+            except Exception as ex:
+                print "EXXXXX:", ex
+                raise ProcServerPythonException(ex)
+
+        self.handlers[f.__name__] = wrapper
+        return wrapper
+
+
 def _start_connection(server, s):
     try:
         while server.started:
@@ -282,12 +309,17 @@ def _start_connection(server, s):
 
                 # if result is not a dict, convert it to a dict containing 'result'
                 if not isinstance(reply, dict):
-                    reply={'result': reply}
+                    reply = {'result': reply}
 
                 reply[RESP_TO] = body[REQ_ID]
                 if reply is None:
                     reply = {}
                 _write_good_response(s, reply)
+            except ProcServerPythonException as ex:
+                # reply = dict()
+                # reply[RESP_TO] = body[REQ_ID]
+                # reply['msg'] = str(ex)
+                _write_error_response(s, ex.message, resp_to=body[REQ_ID])
             except Exception as ex:
                 _write_bad_response(s, str(ex))
 
