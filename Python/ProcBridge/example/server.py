@@ -14,8 +14,10 @@ def echo(self, echo, **kw):
 
 
 @delegate.api
-def add(self, elements, **kw):
+def add(self, elements, conn, **kw):
     # return {'result': sum(x for x in elements)}  #long version
+    for i in range(10):
+        self.server.write_back(conn, {'schas':i})
     return sum(elements)
 
 

@@ -189,13 +189,13 @@ class Delegate(object):
     """"""
     handlers = {}
 
-    def __call__(self, api, kw):
+    def __call__(self, api, kw, conn):
         meth = self.handlers[api]
-        return meth(self, **kw)
+        return meth(self, conn=conn, **kw)
 
     def api(self, f):
-        def wrapper(self, *a, **kw):
-            return f(self, *a, **kw)
+        def wrapper(self, conn, *a, **kw):
+            return f(self, conn=conn, *a, **kw)
 
         self.handlers[f.__name__] = f
         return wrapper
@@ -210,6 +210,7 @@ class ProcBridgeServer:
         self.lock = threading.Lock()
         self.socket = None
         self.delegate = delegate
+        self.delegate.server = self
         self.delegate.socket = self.socket
 
     def start(self):
@@ -239,6 +240,15 @@ class ProcBridgeServer:
         finally:
             self.lock.release()
 
+    def write_back(self, conn, data):
+        """
+        writes back data
+        :param data: a json-translatable object
+        :return: None
+        """
+        print 'socket:', self.socket.makefile
+        # _write_socket(conn, _STATUS_CODE_GOOD_RESPONSE, data)
+        _write_good_response(conn, data)
 
 def _start_server_listener(server):
     try:
@@ -267,7 +277,7 @@ def _start_connection(server, s):
                 print 'closing'
                 break
             try:
-                reply = server.delegate(api, body)
+                reply = server.delegate(api, body, conn=s)
                 print 'REPLY:', reply
 
                 # if result is not a dict, convert it to a dict containing 'result'
