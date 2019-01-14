@@ -2,10 +2,6 @@ package co.gongzh.procbridge
 
 import com.google.gson.JsonObject
 
-import co.gongzh.procbridge.MessageHandler
-import co.gongzh.procbridge.ProcBridge
-import co.gongzh.procbridge.ProcBridgeException
-
 
 fun main(args: Array<String>) {
 
@@ -32,24 +28,17 @@ fun main(args: Array<String>) {
     try {
 //        ClientKt.pb?.getClientID()
         pb.sendMessage("echo", "{echo:echoooo}")
-//        pb.sendMessage("echo", "{[1,2,3]}")
         pb.sendMessage("add", "{elements: [1, 2, 3, 4, 5]}")
-//        pb.sendMessage("add", "{elements: [1, 2, 3, 4, 5, 6, 7]}")
+        pb.sendMessage("add", "{elements: [1, 2, 3, 4, 5, 6, 7]}")
 
-//        try {
-//            pb.sendMessage("retNull", "{}")
-//        } catch (e: RuntimeException) {
-//            e.printStackTrace()
-//        }
-//
-//        pb.sendMessage("retNullVal", "{}")
+
     } catch (e: ProcBridgeException) {
         e.printStackTrace()
     }
 
     //Wait for responses.
     try {
-        Thread.sleep(1000)
+        Thread.sleep(100000)
     } catch (e: InterruptedException) {
         e.printStackTrace()
     }

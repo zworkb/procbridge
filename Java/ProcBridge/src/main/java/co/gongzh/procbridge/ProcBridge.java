@@ -144,7 +144,7 @@ public final class ProcBridge {
 						if (out_err_msg[0] == null) {
 							out_err_msg[0] = "server error";
 						}
-						throw new ProcBridgeException(out_err_msg[0]);
+						throw new ProcBridgeException("msg from server:" + out_err_msg[0]);
 					}
 
 					assert out_json[0] != null;
