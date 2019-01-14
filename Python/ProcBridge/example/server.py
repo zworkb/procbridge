@@ -5,7 +5,14 @@ import procbridge
 
 #XXX: delegate must be a class
 
+
+import time
+
 delegate = procbridge.Delegate()
+
+@delegate.api
+def gettime(self, **kw):
+    return time.time()
 
 
 @delegate.api
@@ -31,12 +38,7 @@ if __name__ == '__main__':
     server.start()
     print('listening...')
 
-    try:
-        for line in sys.stdin:
-            if line.strip() == 'exit':
-                break
-    except KeyboardInterrupt:
-        pass
+    raw_input("press any key to exit...")
 
     server.stop()
     print('bye!')
