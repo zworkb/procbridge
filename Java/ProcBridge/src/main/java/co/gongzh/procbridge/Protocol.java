@@ -10,6 +10,8 @@ import org.jetbrains.annotations.Nullable;
 import java.io.*;
 import java.net.SocketException;
 
+import static co.gongzh.procbridge.Protocol.RESP_TO;
+
 /**
  * @author Gong Zhang
  */
@@ -20,7 +22,7 @@ final class Protocol {
     private static final JsonParser parser = new JsonParser();
 
     enum StatusCode {
-        REQUEST(0), RESPONSE_GOOD(1), RESPONSE_BAD(2);
+        REQUEST(0), RESPONSE_GOOD(1), RESPONSE_BAD(2), RESPONSE_ERROR(3); //TODO: handle ERROR (app level)
         int rawValue;
         StatusCode(int rawValue) {
             this.rawValue = rawValue;
@@ -40,6 +42,7 @@ final class Protocol {
                 case REQUEST: return new RequestDecoder();
                 case RESPONSE_GOOD: return new GoodResponseDecoder();
                 case RESPONSE_BAD: return new BadResponseDecoder();
+                case RESPONSE_ERROR: return new ErrorResponseDecoder();
                 default: throw new InternalError("unknown status code");
             }
         }
@@ -53,8 +56,8 @@ final class Protocol {
     
     static final String CLOSE_MESSAGE_API = "__PB_CLOSE__";
 
-    static final String REQ_ID = "__REQID__";
-    static final String RESP_TO = "__RESP_TO__";
+    public static final String REQ_ID = "__REQID__";
+    public static final String RESP_TO = "__RESP_TO__";
 
 
     static void write(OutputStream stream, Encoder encoder) throws ProcBridgeException {
@@ -294,6 +297,11 @@ abstract class Decoder {
     abstract JsonObject getResponseBody();
     abstract String getErrorMessage();
     abstract RequestDecoder asRequest();
+    public int respTo = -1;
+
+    int getRespTo() {
+        return respTo;
+    }
 
 }
 
@@ -381,6 +389,35 @@ final class BadResponseDecoder extends Decoder {
         if (msg != null) {
             this.message = msg;
         }
+    }
+
+    JsonObject getResponseBody() {
+        return null;
+    }
+
+    String getErrorMessage() {
+        return message;
+    }
+
+    @Override
+    RequestDecoder asRequest() {
+        return null;
+    }
+}
+
+final class ErrorResponseDecoder extends Decoder {
+
+    @NotNull
+    private
+    String message = "";
+
+    @Override
+    void decode(JsonObject object) throws ProcBridgeException {
+        String msg = object.get(Protocol.KEY_MESSAGE).getAsString();
+        if (msg != null) {
+            this.message = msg;
+        }
+        respTo = object.get(RESP_TO).getAsInt();
     }
 
     JsonObject getResponseBody() {

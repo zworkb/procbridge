@@ -6,7 +6,8 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.Iterator;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
 
 import org.jetbrains.annotations.NotNull;
@@ -17,6 +18,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 
 import static co.gongzh.procbridge.Protocol.REQ_ID;
+import static co.gongzh.procbridge.Protocol.RESP_TO;
 
 /**
  * @author Gong Zhang
@@ -40,13 +42,13 @@ public final class ProcBridge {
 	private boolean stopRequested = false;
 
 	private Iterator<Integer> intSpender;
+	private Map<Integer, CompletableFuture<JsonObject>> futures = new HashMap<Integer, CompletableFuture<JsonObject>>() ;
 
 	public ProcBridge(String host, int port, int timeout, MessageHandler messageHandler) {
 		this.host = host;
 		this.port = port;
 		this.timeout = timeout;
-		this.intSpender = IntStream.iterate(0, i -> i + 1).iterator();
-
+		this.intSpender = IntStream.iterate(1, i -> i + 1).iterator();
 		this.messageHandler = messageHandler;
 
 		this.socket = new Socket();
@@ -84,24 +86,23 @@ public final class ProcBridge {
 		return 0;
 	}
 
-	public void sendMessage(@NotNull String api) throws ProcBridgeException {
-		sendMessage(api, (String) null);
+	public CompletableFuture<JsonObject> sendMessage(@NotNull String api) throws ProcBridgeException {
+		return sendMessage(api, (String) null);
 	}
 
-	public void sendMessage(@NotNull String api, @Nullable String jsonText) throws ProcBridgeException {
+	public CompletableFuture<JsonObject> sendMessage(@NotNull String api, @Nullable String jsonText) throws ProcBridgeException {
 		try {
-//		    System.out.println("sending text:"+jsonText);
 			if (jsonText == null) {
 				jsonText = "{}";
 			}
 			JsonObject obj = parser.parse(jsonText).getAsJsonObject();
-			sendMessage(api, obj);
+			return sendMessage(api, obj);
 		} catch (JsonParseException ex) {
 			throw new IllegalArgumentException(ex);
 		}
 	}
 
-	public void sendMessage(@NotNull String api, @Nullable JsonObject body) throws ProcBridgeException {
+	public CompletableFuture<JsonObject> sendMessage(@NotNull String api, @Nullable JsonObject body) throws ProcBridgeException {
 		
 		if (socket.isOutputShutdown()) {
 			this.stopRequested = true;
@@ -109,52 +110,91 @@ public final class ProcBridge {
 		}
 		
 		synchronized (osLock) {
-			int reqid = this.intSpender.next();
-			if (body != null) body.addProperty(REQ_ID, reqid);
-			final RequestEncoder request = new RequestEncoder(api, body);
-			//just send the message here.
-			Protocol.write(os, request);
-		}
-		
+            int reqid = this.intSpender.next();
+            if (body != null) body.addProperty(REQ_ID, reqid);
+            final RequestEncoder request = new RequestEncoder(api, body);
+            //just send the message here.
+            CompletableFuture<JsonObject> res = createFuture(reqid);
+            Protocol.write(os, request);
+            return res;
+        }
 	}
+
+    /**
+     * creates a future waiting for the given request
+     * @param reqid
+     * @return the future
+     */
+	CompletableFuture<JsonObject> createFuture(int reqid){
+        System.out.println("create future for:" + reqid);
+        CompletableFuture<JsonObject> res = new CompletableFuture<JsonObject>();
+        futures.put(reqid, res);
+        return res;
+    }
+
+    /**
+     * completes a future waiting for a request
+     * @param reqid
+     * @param value will be passed to the
+     */
+    void completeFuture(int reqid, JsonObject value) throws ProcBridgeException {
+        System.out.println("complete future for:" + reqid);
+        if(!futures.containsKey(reqid)){
+            throw new ProcBridgeException("request id not exists:"+reqid);
+        }
+        CompletableFuture<JsonObject> fut = futures.get(reqid);
+        fut.complete(value);
+        futures.remove(reqid);
+    }
+
+    void cancelFuture(int reqid, Throwable e){
+        CompletableFuture<JsonObject> fut = futures.get(reqid);
+        fut.completeExceptionally(e);
+    }
 
 	private void startHandlingMessages() {
 		Thread threadMessageHandler = new Thread(() -> {
 			while (!stopRequested) {
 				try {
-					
-					if (socket.isInputShutdown()) {
-						this.stopRequested = true;
-						throw new ProcBridgeException("InputStream closed from the server. No more messages can be handled. Please reconnect.");
-					}
 
-					final JsonObject[] out_json = { null };
-					final String[] out_err_msg = { null };
-					
-					synchronized (isLock) {
-						Decoder decoder = Protocol.read(is);
-						out_json[0] = decoder.getResponseBody();
-						if (out_json[0] == null) {
-							// must be error
-							out_err_msg[0] = decoder.getErrorMessage();
-						}
-					}
+                    if (socket.isInputShutdown()) {
+                        this.stopRequested = true;
+                        throw new ProcBridgeException("InputStream closed from the server. No more messages can be handled. Please reconnect.");
+                    }
 
-					if (out_json[0] == null) {
-						if (out_err_msg[0] == null) {
-							out_err_msg[0] = "server error";
-						}
-						throw new ProcBridgeException("msg from server:" + out_err_msg[0]);
-					}
+                    JsonObject out_json = null;
+                    String out_err_msg = null;
 
-					assert out_json[0] != null;
-					//sends the message to the handler.
+                    Decoder decoder;
 
-                    // TODO: if its a response message to a request (not sendMessage)
-                    // call a specific responseHandler that gives control to the future or so
+                    synchronized (isLock) {
+                        decoder = Protocol.read(is);
+                    }
 
-					messageHandler.onMessage(out_json[0]);
-					
+                    if (decoder instanceof GoodResponseDecoder) {
+                        out_json = decoder.getResponseBody();
+
+                        int reqid = -1;
+                        messageHandler.onMessage(out_json);
+                        if (out_json.has(RESP_TO)) {
+                            reqid = out_json.get(RESP_TO).getAsInt();
+                            completeFuture(reqid, out_json);
+                        }
+    					messageHandler.onMessage(out_json);
+                    } else if (decoder instanceof BadResponseDecoder) {
+                        out_err_msg = decoder.getErrorMessage();
+                        if (out_err_msg == null) {
+                            out_err_msg = "server error";
+                        }
+                        throw new ProcBridgeException("msg from server:" + out_err_msg);
+                    } else if (decoder instanceof ErrorResponseDecoder) {
+                        out_err_msg = decoder.getErrorMessage();
+                        if (out_err_msg == null) {
+                            out_err_msg = "server error";
+                        }
+                        cancelFuture(decoder.getRespTo(),new ProcBridgeException (out_err_msg));
+                    }
+
 				} catch (SocketException e) {
 					messageHandler.onError(new ProcBridgeException(e));
 					return;
