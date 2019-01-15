@@ -3,8 +3,6 @@
 import sys
 import procbridge
 
-#XXX: delegate must be a class
-
 
 import time
 
@@ -17,14 +15,15 @@ def gettime(self, **kw):
 
 @delegate.api
 def echo(self, echo, **kw):
+    time.sleep(5)
     return echo
 
 
 @delegate.api
 def add(self, elements, conn, **kw):
     # return {'result': sum(x for x in elements)}  #long version
-    # for i in elements:
-    #     self.server.write_back(conn, {'schas':i})
+    for i in elements:
+        self.server.write_back(conn, {'schas':i})
     return sum(elements)
 
 
