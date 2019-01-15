@@ -41,16 +41,18 @@ fun main(args: Array<String>) {
 //        res1.get()
 //        println("res1.get:${res1.get()}")
 
+        pb.sendMessage("shutdown")
+
     } catch (e: ProcBridgeException) {
         e.printStackTrace()
     }
 
     //Wait for responses.
-    try {
-        Thread.sleep(1000)
-    } catch (e: InterruptedException) {
-        e.printStackTrace()
-    }
+//    try {
+//        Thread.sleep(1000)
+//    } catch (e: InterruptedException) {
+//        e.printStackTrace()
+//    }
 
     pb.stop()
 }

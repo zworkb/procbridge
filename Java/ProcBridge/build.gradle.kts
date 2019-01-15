@@ -11,7 +11,7 @@ import org.gradle.api.tasks.bundling.Jar
 
 group = "co.gongzh.procbridge"
 // group = "co.gongzh.procbridge"
-version = "2.0.2-gradle"
+version = "2.1.0-gradle"
 description = "procbridge"
 // sourceCompatibility = "1.8"
 
