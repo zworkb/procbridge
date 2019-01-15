@@ -23,7 +23,7 @@ def echo(self, echo, **kw):
 def add(self, elements, conn, **kw):
     # return {'result': sum(x for x in elements)}  #long version
     for i in elements:
-        self.server.write_back(conn, {'schas':i})
+        self.server.write_back(conn, {'element':i})
     return sum(elements)
 
 

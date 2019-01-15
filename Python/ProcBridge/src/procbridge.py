@@ -35,6 +35,11 @@ class ProcServerPythonException(Exception):
 
 
 def bytes2long(buf):
+    """
+    converts a 32 bit int to a little endian byte array
+    :param buf: bytestring
+    :return:
+    """
     res = ord(buf[0]) +\
           (ord(buf[1]) << 8) +\
           (ord(buf[2]) << 16) +\
@@ -43,6 +48,11 @@ def bytes2long(buf):
 
 
 def long2bytes(x):
+    """
+    converts a 4 byte array to a 32 bit int (little endian
+    :param x: 32bit int
+    :return: 4 byte array
+    """
     bytes=''.join(map(chr,
               [
                   x & 255,
@@ -53,7 +63,13 @@ def long2bytes(x):
     return bytes
 
 
-def _read_bytes(s, count) :
+def _read_bytes(s, count):
+    """
+    reads count bytes from a socket conn
+    :param s: socket connection
+    :param count:
+    :return: byte string
+    """
     rst = b''
     while True:
         tmp = s.recv(count - len(rst))
@@ -66,6 +82,11 @@ def _read_bytes(s, count) :
 
 
 def _read_socket(s):
+    """
+    reads json object from a socket connection using json.reads
+    :param s: socket connection
+    :return: json object
+    """
     # 1. FLAG 'pb'
     flag = _read_bytes(s, 2)
     if flag != b'pb':
@@ -104,6 +125,13 @@ def _read_socket(s):
 
 
 def _write_socket(s, status_code, json_obj):
+    """
+    writes a json object to a socket connection
+    :param s: socket conn
+    :param status_code: 1: good, 2: bad, 3: app level error
+    :param json_obj: what can be handled with json.dumps
+    :return: None
+    """
     # 1. FLAG
     s.sendall(b'pb')
     # 2. VERSION
@@ -118,9 +146,7 @@ def _write_socket(s, status_code, json_obj):
     json_bytes = json_text #bytes(json_text, encoding='utf-8')
     # len_bytes = len(json_bytes).to_bytes(4, byteorder='little')
     len_bytes = len(json_bytes)
-    print 'len_bytes:', len_bytes
     bytes_len_bytes = long2bytes(len_bytes)
-    print 'bytes_len_bytes:', map(ord, bytes_len_bytes)
     len_bytes = long2bytes(len_bytes)
     s.sendall(len_bytes)
 
@@ -128,7 +154,12 @@ def _write_socket(s, status_code, json_obj):
     s.sendall(json_bytes)
 
 
-def _read_request(s) :
+def _read_request(s):
+    """
+    reads request from socket, uses _read_socket
+    :param s: socket conn
+    :return: tuple (<procedure name>:str, {.arbitrary key/value params})
+    """
     status_code, obj = _read_socket(s)
     if status_code != _STATUS_CODE_REQUEST:
         raise Exception(_ERROR_MSG_INVALID_STATUS_CODE)
@@ -140,7 +171,12 @@ def _read_request(s) :
         return str(obj[_KEY_API]), {}
 
 
-def _read_response(s) :
+def _read_response(s):
+    """
+    reads response from socket conn (XXX: not ready)
+    :param s: socket conn
+    :return: tuple (status code:int, json dict)
+    """
     status_code, obj = _read_socket(s)
     if status_code == _STATUS_CODE_GOOD_RESPONSE:
         if _KEY_BODY not in obj:
@@ -157,6 +193,13 @@ def _read_response(s) :
 
 
 def _write_request(s, api, body):
+    """
+    writes request to socket conn XXX: not ready
+    :param s: socket stream
+    :param api: string
+    :param body: dict that can be processed by json.dumps
+    :return: None
+    """
     _write_socket(s, _STATUS_CODE_REQUEST, {
         _KEY_API: api,
         _KEY_BODY: body
@@ -164,6 +207,13 @@ def _write_request(s, api, body):
 
 
 def _write_good_response(s, json_obj, resp_to):
+    """
+    writes  a successful response to a socket conn
+    :param s: socket conn
+    :param json_obj: dict that can be processed by json.dumps
+    :param resp_to: id of request being responded to
+    :return: None
+    """
     _write_socket(s, _STATUS_CODE_GOOD_RESPONSE, {
         _KEY_BODY: json_obj,
         RESP_TO:resp_to
@@ -171,7 +221,14 @@ def _write_good_response(s, json_obj, resp_to):
 
 
 def _write_error_response(s, json_obj, resp_to=-1):
-    """for exceptions on application level"""
+    """
+    writes application level error to response.
+    will be handled as exception on client side
+    :param s: socket conn
+    :param json_obj: dict that can be processed by json.dumps
+    :param resp_to: id of request being responded to
+    :return: None
+    """
     _write_socket(s, _STATUS_CODE_ERROR_RESPONSE, {
         _KEY_MSG: json_obj,
         RESP_TO: resp_to
@@ -179,13 +236,21 @@ def _write_error_response(s, json_obj, resp_to=-1):
 
 
 def _write_bad_response(s, message):
-    """for exceptions on protocol level"""
+    """
+    passes a protocol exception
+    :param s: socket conn
+    :param message: string
+    :return: None
+    """
     _write_socket(s, _STATUS_CODE_BAD_RESPONSE, {
         _KEY_MSG: message
     })
 
 
 class ProcBridge:
+    """
+    client end of protocol
+    """
 
     def __init__(self, host, port):
         self.host = host
@@ -208,8 +273,16 @@ class ProcBridge:
 
 
 class ProcBridgeServer:
+    """
+    server side of protocol
+    """
 
     def __init__(self, host, port, delegate):
+        """
+        :param host:
+        :param port:
+        :param delegate: server side api handler
+        """
         self.host = host
         self.port = port
         self.started = False
@@ -252,11 +325,17 @@ class ProcBridgeServer:
         :param data: a json-translatable object
         :return: None
         """
-        print 'socket:', self.socket.makefile
         # _write_socket(conn, _STATUS_CODE_GOOD_RESPONSE, data)
         _write_good_response(conn, data, -1)
 
+
 def _start_server_listener(server):
+    """
+    starts server listener
+    called internally by ProcBridgeServer.start()
+    :param server: ProcBridgeServer instance
+    :return:
+    """
     try:
         while True:
             server.lock.acquire()
@@ -275,7 +354,26 @@ def _start_server_listener(server):
 
 
 class Delegate(object):
-    """"""
+    """
+    api handler, will be passed to ProcBridgeServer constructor
+    usage:
+
+    delegate = procbridge.Delegate()
+
+    @delegate.api
+    def gettime(self, **kw):
+        return time.time()
+
+
+    @delegate.api
+    def echo(self, echo, **kw):
+        time.sleep(5)
+        return echo
+
+    server = procbridge.ProcBridgeServer(host, port, delegate)
+    server.start()
+
+    """
     handlers = {}
 
     def __call__(self, api, kw, conn):
@@ -283,13 +381,11 @@ class Delegate(object):
         return meth(self, conn=conn, **kw)
 
     def api(self, f):
+        """decorator for api handler functions"""
         def wrapper(self, conn, *a, **kw):
-            print "inside wrapper"
             try:
-                print "wrapper calls f"
                 return f(self, conn=conn, *a, **kw)
             except Exception as ex:
-                print "EXXXXX:", ex
                 raise ProcServerPythonException(ex)
 
         self.handlers[f.__name__] = wrapper
@@ -297,6 +393,12 @@ class Delegate(object):
 
 
 def _start_connection(server, s):
+    """
+    starts handling a new connection, called by _start_server_listener
+    :param server: ProcBridgeServer
+    :param s: socket conn
+    :return: None
+    """
     try:
         while server.started:
             api, body = _read_request(s)
@@ -306,7 +408,7 @@ def _start_connection(server, s):
                 break
             try:
                 reply = server.delegate(api, body, conn=s)
-                print 'REPLY:', reply
+                print 'result:', reply
 
                 # if result is not a dict, convert it to a dict containing 'result'
                 if not isinstance(reply, dict):
@@ -314,13 +416,10 @@ def _start_connection(server, s):
 
                 if reply is None:
                     reply = {}
+
                 resp_to = body[REQ_ID]
-                print 'resp_to:', resp_to
                 _write_good_response(s, reply, resp_to=resp_to)
             except ProcServerPythonException as ex:
-                # reply = dict()
-                # reply[RESP_TO] = body[REQ_ID]
-                # reply['msg'] = str(ex)
                 resp_to=body[REQ_ID]
                 print 'resp_to:', resp_to
                 _write_error_response(s, ex.message, resp_to=resp_to)
@@ -329,6 +428,5 @@ def _start_connection(server, s):
 
     except Exception as e: #TODO: fix that seriously
         raise
-        pass
     finally:
         s.close()
